@@ -3,9 +3,7 @@ import mongoengine
 from mongoengine import *
 import os
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
-
 images_folder = os.path.join(APP_ROOT, 'static/images/')
-
 unit = []
 
 connect(
@@ -16,6 +14,12 @@ connect(
     password = "141298",
 )
 
+class Flashcard(Document):
+    image = StringField()
+    word  = StringField()
+    meaning = StringField()
+
+
 class UserSignUp(Document):
     name     = StringField()
     username = StringField()
@@ -23,6 +27,7 @@ class UserSignUp(Document):
 
 
 app = Flask(__name__)
+images_folder = os.path.join(APP_ROOT, 'static/images/')
 
 
 @app.route('/')
@@ -34,9 +39,24 @@ def homepage():
 def sign():
     return render_template("sign.html")
 
-@app.route('/create')
+@app.route("/create",methods=["GET","POST"])
 def create():
-    return render_template("create.html")
+    if not os.path.isdir(images_folder) : #neu folder chua duoc khoi tao
+        os.mkdir(images_folder) #mkdir = make directory
+    if request.method == "GET" :
+        return render_template('create.html')
+    if request.method == "POST":
+        for image in request.files.getlist('file'):
+            image_name = image.filename
+            imagex = "/".join([images_folder, image_name])
+            print(imagex)
+            image.save(imagex)
+        wordx = request.form["word"]
+        meaningx = request.form["meaning"]
+        user = Flashcard(image=image_name, word = wordx , meaning=meaningx)
+        user.save()
+    return ("Thank you")
+
 
 @app.route('/signup',methods=["GET","POST"])
 def signup():
@@ -52,10 +72,6 @@ def signup():
             user.save()
         else: print('tài khoản đã tồn tại')
         return ("Thank You")
-
-images_folder = os.path.join(APP_ROOT, 'static/images/')
-
-
 
 
 @app.route('/signin',methods=["GET","POST"])
@@ -74,13 +90,13 @@ def signin():
         # if
 
 
-@app.route('/test')
-def test():
-    return render_template('test.html')
 
-@app.route('/index1')
-def HelloHuy():
-    return render_template('create.html')
+@app.route('/learn',methods=["GET"])
+def learn():
+    user= Flashcard.objects
+    for i in user:
+        print(i.word)
+    return render_template('learn.html')
 
 if __name__ == '__main__':
     app.run()
